@@ -47,13 +47,13 @@ class Agent {
 
   factory Agent.fromJson(Map<String, dynamic> json) {
     return Agent(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      name: json['name'] as String,
+      id: json['id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
       phoneNumberId: json['phone_number_id'] as String?,
-      voice: json['voice'] as String,
-      ttsLanguage: json['tts_language'] as String,
-      ttsProvider: json['tts_provider'] as String,
+      voice: json['voice'] as String? ?? '',
+      ttsLanguage: json['tts_language'] as String? ?? '',
+      ttsProvider: json['tts_provider'] as String? ?? '',
       greetingLine: json['greeting_line'] as String?,
       agentPrompt: json['agent_prompt'] as String?,
       analysisPrompt: json['analysis_prompt'] as String?,
@@ -70,8 +70,8 @@ class Agent {
       isFrozen: json['is_frozen'] as bool? ?? false,
       hardEndCallMinutes: json['hard_end_call_minutes'] as int? ?? 0,
       isActive: json['is_active'] as bool? ?? false,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      createdAt: json['created_at'] as String? ?? '',
+      updatedAt: json['updated_at'] as String? ?? '',
     );
   }
 
