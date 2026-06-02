@@ -1,7 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vani_app/core/exceptions/app_exception.dart';
 import 'package:vani_app/core/storage/secure_storage_service.dart';
-import 'package:vani_app/data/models/auth/auth_response.dart';
 import 'package:vani_app/data/models/auth/login_request.dart';
 import 'package:vani_app/data/models/auth/signup_request.dart';
 import 'package:vani_app/data/models/user/user_model.dart';
@@ -40,6 +40,8 @@ class AuthRepository {
       throw const AuthException('Login failed: User data not received');
     } catch (e) {
       if (e is AppException) rethrow;
+      // Unwrap AppException from DioException if the interceptor wrapped it
+      if (e is DioException && e.error is AppException) throw e.error as AppException;
       throw AuthException('Login failed: ${e.toString()}');
     }
   }
@@ -78,6 +80,8 @@ class AuthRepository {
       throw const AuthException('Signup failed: User data not received');
     } catch (e) {
       if (e is AppException) rethrow;
+      // Unwrap AppException from DioException if the interceptor wrapped it
+      if (e is DioException && e.error is AppException) throw e.error as AppException;
       throw AuthException('Signup failed: ${e.toString()}');
     }
   }
@@ -171,6 +175,8 @@ class AuthRepository {
       throw const AuthException('Google login failed: User data not received');
     } catch (e) {
       if (e is AppException) rethrow;
+      // Unwrap AppException from DioException if the interceptor wrapped it
+      if (e is DioException && e.error is AppException) throw e.error as AppException;
       throw AuthException('Google login failed: ${e.toString()}');
     }
   }

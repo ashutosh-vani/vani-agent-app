@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vani_app/config/theme.dart';
-import 'package:vani_app/data/services/auth_api_service.dart';
+import 'package:vani_app/core/exceptions/app_exception.dart';
 import 'package:vani_app/data/services/google_sign_in_service.dart';
 import 'package:vani_app/presentation/providers/auth_provider.dart';
 import 'package:vani_app/screens/auth/signup_screen.dart';
@@ -72,23 +72,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = e.toString();
-        // Extract meaningful error message
-        if (errorMessage.contains('401')) {
-          errorMessage = 'Invalid email or password';
-        } else if (errorMessage.contains('Email not verified')) {
-          errorMessage = 'Please verify your email first';
-        } else if (errorMessage.contains('took longer than')) {
-          errorMessage = 'Server is not responding. Please check your internet connection and try again.';
-        } else if (errorMessage.contains('SocketException')) {
-          errorMessage = 'Network error. Please check your internet connection.';
-        } else if (errorMessage.contains('Connection refused')) {
-          errorMessage = 'Cannot connect to server. Please try again later.';
+        String errorMessage;
+        // AppException has a clean .message — use it directly
+        if (e is AppException) {
+          errorMessage = e.message;
+        } else {
+          errorMessage = e.toString();
+          if (errorMessage.contains('401')) {
+            errorMessage = 'Invalid email or password';
+          } else if (errorMessage.contains('Email not verified')) {
+            errorMessage = 'Please verify your email first';
+          } else if (errorMessage.contains('took longer than') ||
+              errorMessage.contains('timeout')) {
+            errorMessage =
+                'Server is not responding. Please check your internet connection and try again.';
+          } else if (errorMessage.contains('SocketException')) {
+            errorMessage = 'Network error. Please check your internet connection.';
+          } else if (errorMessage.contains('Connection refused')) {
+            errorMessage = 'Cannot connect to server. Please try again later.';
+          }
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Login failed: $errorMessage'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
@@ -124,11 +131,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         throw Exception('Failed to get Google authentication token');
       }
 
-      // Send the ID token to backend for verification and login
-      final authService = ref.read(authApiServiceProvider);
-      await authService.googleCallback(
+      // Use authProvider so tokens are saved and AuthState is updated
+      await ref.read(authProvider.notifier).googleLogin(
         code: googleAuth.accessToken ?? '',
-        state: googleAuth.idToken ?? '',
+        oauthState: googleAuth.idToken ?? '',
       );
 
       // If successful, navigate to home

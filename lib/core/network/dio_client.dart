@@ -26,7 +26,7 @@ class DioClient {
     _dio.interceptors.addAll([
       _AuthInterceptor(_storageService, _logger),
       _LoggingInterceptor(_logger),
-      _ErrorInterceptor(_logger),
+      _ErrorInterceptor(),
     ]);
   }
 
@@ -170,13 +170,19 @@ class _AuthInterceptor extends Interceptor {
       // Token expired, try to refresh
       final refreshed = await _refreshToken();
       if (refreshed) {
-        // Retry the request
+        // Retry the request with the new token
         final options = err.requestOptions;
         final token = await _storageService.getAccessToken();
         options.headers['Authorization'] = 'Bearer $token';
         
         try {
-          final response = await Dio().fetch(options);
+          final retryDio = Dio(
+            BaseOptions(
+              baseUrl: AppConfig.baseUrl,
+              headers: {'Content-Type': 'application/json'},
+            ),
+          );
+          final response = await retryDio.fetch(options);
           return handler.resolve(response);
         } catch (e) {
           return handler.next(err);
@@ -195,19 +201,29 @@ class _AuthInterceptor extends Interceptor {
       final refreshToken = await _storageService.getRefreshToken();
       if (refreshToken == null) return false;
 
-      // Implement refresh token logic here
-      // This depends on your backend implementation
-      // Example:
-      // final response = await Dio().post(
-      //   '${AppConfig.baseUrl}/api/auth/refresh',
-      //   data: {'refreshToken': refreshToken},
-      // );
-      // 
-      // if (response.statusCode == 200) {
-      //   await _storageService.saveAccessToken(response.data['accessToken']);
-      //   return true;
-      // }
-      
+      final response = await Dio().post(
+        '${AppConfig.baseUrl}/api/auth/refresh',
+        data: {'refresh_token': refreshToken},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data as Map<String, dynamic>;
+        final newAccessToken = data['access_token'] as String?;
+        final newRefreshToken = data['refresh_token'] as String?;
+
+        if (newAccessToken != null) {
+          await _storageService.saveAccessToken(newAccessToken);
+          if (newRefreshToken != null) {
+            await _storageService.saveRefreshToken(newRefreshToken);
+          }
+          return true;
+        }
+      }
+
       return false;
     } catch (e) {
       _logger.e('Token refresh failed: $e');
@@ -260,18 +276,24 @@ class _LoggingInterceptor extends Interceptor {
 
 // Error Interceptor - Converts DioException to AppException
 class _ErrorInterceptor extends Interceptor {
-  final Logger _logger;
-
-  _ErrorInterceptor(this._logger);
+  _ErrorInterceptor();
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
+    // If the error already carries an AppException (e.g. from a retry cycle),
+    // unwrap it and reject with a message-carrying DioException.
+    if (err.error is AppException) {
+      return handler.next(err);
+    }
+
     final exception = _handleError(err);
     handler.reject(
       DioException(
         requestOptions: err.requestOptions,
         error: exception,
         response: err.response,
+        // Carry the human-readable message so toString() returns something useful
+        message: exception.message,
       ),
     );
   }
