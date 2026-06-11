@@ -35,10 +35,13 @@ class AuthApiService {
     return AuthResponse.fromJson(response.data);
   }
 
-  Future<Map<String, dynamic>> verifyEmail(String token) async {
+  Future<Map<String, dynamic>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
     final response = await _dioClient.post(
       ApiEndpoints.verifyEmail,
-      data: {'token': token},
+      data: {'email': email, 'code': code},
     );
     return response.data;
   }
@@ -52,14 +55,16 @@ class AuthApiService {
   }
 
   Future<Map<String, dynamic>> resetPassword({
-    required String token,
+    required String email,
+    required String code,
     required String newPassword,
   }) async {
     final response = await _dioClient.post(
       ApiEndpoints.resetPassword,
       data: {
-        'token': token,
-        'newPassword': newPassword,
+        'email': email,
+        'code': code,
+        'new_password': newPassword,
       },
     );
     return response.data;
@@ -70,14 +75,18 @@ class AuthApiService {
   }
 
   Future<Map<String, dynamic>> sendCall({
+    required String agentId,
     required String phoneNumber,
-    Map<String, dynamic>? additionalData,
+    required String contactName,
+    String? customInstruction,
   }) async {
     final response = await _dioClient.post(
       ApiEndpoints.sendCall,
       data: {
-        'phoneNumber': phoneNumber,
-        ...?additionalData,
+        'agent_id': agentId,
+        'phone_number': phoneNumber,
+        'contact_name': contactName,
+        'custom_instruction': customInstruction,
       },
     );
     return response.data;
@@ -91,6 +100,7 @@ class AuthApiService {
   Future<String> getGoogleAuthUrl() async {
     final response = await _dioClient.get(
       ApiEndpoints.googleAuthUrl,
+      queryParameters: {'platform': 'mobile'},
       options: Options(
         receiveTimeout: const Duration(seconds: 60),
         sendTimeout: const Duration(seconds: 60),
@@ -144,16 +154,14 @@ class AuthApiService {
     return AuthResponse.fromJson(response.data);
   }
 
+  /// Verifies a phone number using a Firebase ID token obtained after the
+  /// user completes OTP sign-in via Firebase on the client side.
   Future<Map<String, dynamic>> verifyPhone({
-    required String phoneNumber,
-    required String code,
+    required String firebaseIdToken,
   }) async {
     final response = await _dioClient.post(
       ApiEndpoints.verifyPhone,
-      data: {
-        'phoneNumber': phoneNumber,
-        'code': code,
-      },
+      data: {'firebase_id_token': firebaseIdToken},
     );
     return response.data;
   }

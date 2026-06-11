@@ -104,9 +104,12 @@ class AuthRepository {
     return await _storageService.getAccessToken();
   }
 
-  Future<void> verifyEmail(String token) async {
+  Future<void> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
     try {
-      await _authApiService.verifyEmail(token);
+      await _authApiService.verifyEmail(email: email, code: code);
     } catch (e) {
       if (e is AppException) rethrow;
       throw AuthException('Email verification failed: ${e.toString()}');
@@ -123,12 +126,14 @@ class AuthRepository {
   }
 
   Future<void> resetPassword({
-    required String token,
+    required String email,
+    required String code,
     required String newPassword,
   }) async {
     try {
       await _authApiService.resetPassword(
-        token: token,
+        email: email,
+        code: code,
         newPassword: newPassword,
       );
     } catch (e) {
@@ -178,6 +183,28 @@ class AuthRepository {
       // Unwrap AppException from DioException if the interceptor wrapped it
       if (e is DioException && e.error is AppException) throw e.error as AppException;
       throw AuthException('Google login failed: ${e.toString()}');
+    }
+  }
+
+  /// Verifies phone number using a Firebase ID token obtained after the
+  /// user completes OTP sign-in via Firebase on the client side.
+  Future<void> verifyPhone({required String firebaseIdToken}) async {
+    try {
+      await _authApiService.verifyPhone(firebaseIdToken: firebaseIdToken);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AuthException('Phone verification failed: ${e.toString()}');
+    }
+  }
+
+  /// Sets or updates the authenticated user's phone number.
+  /// After calling this, the OTP flow should run to verify the number.
+  Future<void> setPhone(String phoneNumber) async {
+    try {
+      await _authApiService.setPhone(phoneNumber);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AuthException('Failed to set phone number: ${e.toString()}');
     }
   }
 }

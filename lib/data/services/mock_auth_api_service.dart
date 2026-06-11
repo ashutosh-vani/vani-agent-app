@@ -15,12 +15,10 @@ class MockAuthApiService {
     return AuthResponse(
       accessToken: 'mock_access_token_${DateTime.now().millisecondsSinceEpoch}',
       refreshToken: 'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
-      user: User(
-        id: 'user_${request.email.hashCode}',
-        email: request.email,
-        name: request.email.split('@')[0],
-        verified: true,
-      ),
+      id: 'user_${request.email.hashCode}',
+      email: request.email,
+      name: request.email.split('@')[0],
+      emailVerified: true,
       message: 'Login successful',
     );
   }
@@ -29,22 +27,22 @@ class MockAuthApiService {
     await Future.delayed(_networkDelay);
     
     return AuthResponse(
+      id: 'user_${request.email.hashCode}',
+      email: request.email,
+      name: request.name ?? request.email.split('@')[0],
+      emailVerified: false,
       message: 'User created successfully. Please verify your email.',
-      user: User(
-        id: 'user_${request.email.hashCode}',
-        email: request.email,
-        name: request.name ?? request.email.split('@')[0],
-        verified: false,
-      ),
     );
   }
 
-  Future<Map<String, dynamic>> verifyEmail(String token) async {
+  Future<Map<String, dynamic>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
     await Future.delayed(_networkDelay);
     
     return {
       'message': 'Email verified successfully',
-      'verified': true,
     };
   }
 
@@ -58,14 +56,14 @@ class MockAuthApiService {
   }
 
   Future<Map<String, dynamic>> resetPassword({
-    required String token,
+    required String email,
+    required String code,
     required String newPassword,
   }) async {
     await Future.delayed(_networkDelay);
     
     return {
       'message': 'Password reset successfully',
-      'success': true,
     };
   }
 
@@ -74,15 +72,16 @@ class MockAuthApiService {
   }
 
   Future<Map<String, dynamic>> sendCall({
+    required String agentId,
     required String phoneNumber,
-    Map<String, dynamic>? additionalData,
+    required String contactName,
+    String? customInstruction,
   }) async {
     await Future.delayed(_networkDelay);
     
     return {
       'message': 'Call sent successfully',
-      'phoneNumber': phoneNumber,
-      'callId': 'call_${DateTime.now().millisecondsSinceEpoch}',
+      'test_call_id': 'call_${DateTime.now().millisecondsSinceEpoch}',
     };
   }
 
@@ -119,26 +118,22 @@ class MockAuthApiService {
     return AuthResponse(
       accessToken: 'mock_google_token_${DateTime.now().millisecondsSinceEpoch}',
       refreshToken: 'mock_google_refresh_token',
-      user: User(
-        id: 'google_user_${code.hashCode}',
-        email: 'user@gmail.com',
-        name: 'Google User',
-        verified: true,
-      ),
+      id: 'google_user_${code.hashCode}',
+      email: 'user@gmail.com',
+      name: 'Google User',
+      emailVerified: true,
       message: 'Google login successful',
     );
   }
 
   Future<Map<String, dynamic>> verifyPhone({
-    required String phoneNumber,
-    required String code,
+    required String firebaseIdToken,
   }) async {
     await Future.delayed(_networkDelay);
     
     return {
       'message': 'Phone verified successfully',
-      'phoneNumber': phoneNumber,
-      'verified': true,
+      'phone_verified': true,
     };
   }
 
@@ -150,33 +145,4 @@ class MockAuthApiService {
       'phoneNumber': phoneNumber,
     };
   }
-}
-
-// Mock User model
-class User {
-  final String id;
-  final String email;
-  final String name;
-  final bool verified;
-
-  User({
-    required this.id,
-    required this.email,
-    required this.name,
-    this.verified = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'email': email,
-    'name': name,
-    'verified': verified,
-  };
-
-  factory User.fromJson(Map<String, dynamic> json) => User(
-    id: json['id'] as String,
-    email: json['email'] as String,
-    name: json['name'] as String,
-    verified: json['verified'] as bool? ?? false,
-  );
 }

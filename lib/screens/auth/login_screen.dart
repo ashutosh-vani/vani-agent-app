@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vani_app/config/theme.dart';
 import 'package:vani_app/core/exceptions/app_exception.dart';
-import 'package:vani_app/data/services/google_sign_in_service.dart';
+import 'package:vani_app/domain/repositories/auth_repository.dart';
 import 'package:vani_app/presentation/providers/auth_provider.dart';
 import 'package:vani_app/screens/auth/signup_screen.dart';
 
@@ -111,51 +112,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoadingGoogle = true);
     try {
-      final googleSignInService = ref.read(googleSignInServiceProvider);
-      
-      // Sign in with Google
-      final googleUser = await googleSignInService.signIn();
-      
-      if (googleUser == null) {
-        // User cancelled the sign-in
-        if (mounted) {
-          setState(() => _isLoadingGoogle = false);
-        }
-        return;
+      // Step 1: Get the Google OAuth URL from the backend
+      final authRepository = ref.read(authRepositoryProvider);
+      final authUrl = await authRepository.getGoogleAuthUrl();
+
+      // Step 2: Open the URL in the browser.
+      // The backend will redirect back to the app via deep link after auth.
+      final uri = Uri.parse(authUrl);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not open Google sign-in page');
       }
 
-      // Get authentication details
-      final googleAuth = await googleSignInService.getAuthentication(googleUser);
-      
-      if (googleAuth == null || googleAuth.idToken == null) {
-        throw Exception('Failed to get Google authentication token');
-      }
-
-      // Use authProvider so tokens are saved and AuthState is updated
-      await ref.read(authProvider.notifier).googleLogin(
-        code: googleAuth.accessToken ?? '',
-        oauthState: googleAuth.idToken ?? '',
-      );
-
-      // If successful, navigate to home
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      // After this point the OS takes over. The result comes back through
+      // the deep-link route '/auth/google/callback' handled in main.dart →
+      // GoogleCallbackScreen, which calls authProvider.googleLogin().
     } catch (e) {
       if (mounted) {
-        String errorMessage = e.toString();
-        if (errorMessage.contains('sign_in_canceled')) {
-          errorMessage = 'Google sign-in was cancelled';
-        } else if (errorMessage.contains('network_error')) {
-          errorMessage = 'Network error. Please check your connection';
-        } else if (errorMessage.contains('Failed to get Google authentication token')) {
-          errorMessage = 'Failed to authenticate with Google';
-        } else if (errorMessage.contains('SocketException')) {
-          errorMessage = 'Network error. Please check your internet connection.';
-        } else if (errorMessage.contains('Connection refused')) {
-          errorMessage = 'Cannot connect to server. Please try again later.';
+        String errorMessage;
+        if (e is AppException) {
+          errorMessage = e.message;
+        } else {
+          errorMessage = e.toString();
+          if (errorMessage.contains('network_error') ||
+              errorMessage.contains('SocketException')) {
+            errorMessage = 'Network error. Please check your connection.';
+          } else if (errorMessage.contains('Connection refused')) {
+            errorMessage = 'Cannot connect to server. Please try again later.';
+          }
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $errorMessage'),

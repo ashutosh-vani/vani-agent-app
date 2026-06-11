@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
+      // Named routes for simple screens
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainShell(),
@@ -41,18 +42,52 @@ class MyApp extends StatelessWidget {
         '/whatsapp-inbox': (context) => const WhatsAppInboxScreen(),
         '/integrations': (context) => const IntegrationsScreen(),
         '/meta-ads': (context) => const MetaAdsScreen(),
-        '/auth/google/callback': (context) {
-          final uri = Uri.base;
-          final code = uri.queryParameters['code'];
-          final state = uri.queryParameters['state'];
-          final error = uri.queryParameters['error'];
-          
-          return GoogleCallbackScreen(
-            code: code,
-            state: state,
-            error: error,
+      },
+      // onGenerateRoute handles routes that carry dynamic parameters,
+      // including the Google OAuth deep link: vaniapp://auth/google/callback?code=...&state=...
+      onGenerateRoute: (settings) {
+        final name = settings.name ?? '';
+
+        if (name == '/auth/google/callback' ||
+            name.startsWith('/auth/google/callback')) {
+          // On web, query params come from Uri.base.
+          // On mobile, Flutter passes the full URI string as the route name
+          // (e.g. "vaniapp://auth/google/callback?code=abc&state=xyz").
+          String? code;
+          String? state;
+          String? error;
+
+          // Try to parse query params from the route name itself (mobile deep link)
+          try {
+            final uri = Uri.parse(name);
+            code = uri.queryParameters['code'];
+            state = uri.queryParameters['state'];
+            error = uri.queryParameters['error'];
+          } catch (_) {
+            // fallback: no query params in route name
+          }
+
+          // On web, fall back to Uri.base
+          if (code == null && error == null) {
+            try {
+              final uri = Uri.base;
+              code = uri.queryParameters['code'];
+              state = uri.queryParameters['state'];
+              error = uri.queryParameters['error'];
+            } catch (_) {}
+          }
+
+          return MaterialPageRoute(
+            builder: (_) => GoogleCallbackScreen(
+              code: code,
+              state: state,
+              error: error,
+            ),
+            settings: settings,
           );
-        },
+        }
+
+        return null; // Let the routes table handle anything else
       },
     );
   }
