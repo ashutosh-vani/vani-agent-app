@@ -110,6 +110,13 @@ class _AgentDetailsScreenState extends ConsumerState<AgentDetailsScreen> {
                   _buildDetailRow('Voice', _currentAgent.voice),
                   _buildDetailRow('TTS Provider', _currentAgent.ttsProvider),
                   _buildDetailRow('TTS Language', _currentAgent.ttsLanguage),
+                  _buildDetailRow('TTS Speed', _currentAgent.ttsSpeed.toString()),
+                  if (_currentAgent.speechToSpeechProvider != null)
+                    _buildDetailRow('S2S Provider', _currentAgent.speechToSpeechProvider!),
+                  if (_currentAgent.geminiLiveVoice != null)
+                    _buildDetailRow('Gemini Live Voice', _currentAgent.geminiLiveVoice!),
+                  if (_currentAgent.geminiLiveLanguage != null)
+                    _buildDetailRow('Gemini Live Language', _currentAgent.geminiLiveLanguage!),
                 ]),
 
                 const SizedBox(height: 16),
@@ -118,12 +125,20 @@ class _AgentDetailsScreenState extends ConsumerState<AgentDetailsScreen> {
                   _buildDetailRow('Background Music', _currentAgent.backgroundMusic ? 'Yes' : 'No'),
                   _buildDetailRow('Debug Logging', _currentAgent.debugLogging ? 'Yes' : 'No'),
                   _buildDetailRow('Hard End Call (minutes)', _currentAgent.hardEndCallMinutes.toString()),
+                  _buildDetailRow('Cache Hit Rate', '${(_currentAgent.cacheHitRate * 100).toStringAsFixed(1)}%'),
                 ]),
 
-                if (_currentAgent.greetingLine != null) ...[
-                  const SizedBox(height: 16),
-                  _buildDetailSection('Greeting', [
+                const SizedBox(height: 16),
+                _buildDetailSection('Greeting', [
+                  _buildDetailRow('Greeting Type', _currentAgent.greetingType),
+                  if (_currentAgent.greetingLine != null)
                     _buildDetailText(_currentAgent.greetingLine!),
+                ]),
+
+                if (_currentAgent.localFallbackPrompt != null) ...[
+                  const SizedBox(height: 16),
+                  _buildDetailSection('Local Fallback Prompt', [
+                    _buildDetailText(_currentAgent.localFallbackPrompt!),
                   ]),
                 ],
 
@@ -154,6 +169,13 @@ class _AgentDetailsScreenState extends ConsumerState<AgentDetailsScreen> {
                     _buildDetailText(_currentAgent.knowledgeBaseIds!.join(', ')),
                   ]),
                 ],
+
+                const SizedBox(height: 16),
+                _buildDetailSection('Video Avatar', [
+                  _buildDetailRow('Enabled', _currentAgent.enableVideoAvatar ? 'Yes' : 'No'),
+                  if (_currentAgent.simliFaceId != null)
+                    _buildDetailRow('Simli Face ID', _currentAgent.simliFaceId!),
+                ]),
 
                 const SizedBox(height: 16),
                 _buildDetailSection('Timestamps', [

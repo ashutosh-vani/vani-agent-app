@@ -22,18 +22,26 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
   late TextEditingController _nameController;
   late TextEditingController _greetingLineController;
   late TextEditingController _agentPromptController;
+  late TextEditingController _localFallbackPromptController;
   late TextEditingController _analysisPromptController;
   late TextEditingController _hardEndCallMinutesController;
+  late TextEditingController _ttsSpeedController;
+  late TextEditingController _simliFaceIdController;
   
   // Form values
   String? _selectedPhoneNumberId;
   String _selectedVoice = 'alloy';
   String _selectedTtsLanguage = 'en';
   String _selectedTtsProvider = 'openai';
+  String? _selectedSpeechToSpeechProvider;
+  String? _selectedGeminiLiveVoice;
+  String? _selectedGeminiLiveLanguage;
+  String _selectedGreetingType = 'fixed';
   bool _allowInterruptions = true;
   bool _backgroundMusic = false;
   bool _debugLogging = false;
   bool _isActive = true;
+  bool _enableVideoAvatar = false;
   List<String> _transcriptionLanguages = ['en'];
   
   bool _isLoading = false;
@@ -48,20 +56,30 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
     _nameController = TextEditingController(text: widget.agent?.name ?? '');
     _greetingLineController = TextEditingController(text: widget.agent?.greetingLine ?? '');
     _agentPromptController = TextEditingController(text: widget.agent?.agentPrompt ?? '');
+    _localFallbackPromptController = TextEditingController(text: widget.agent?.localFallbackPrompt ?? '');
     _analysisPromptController = TextEditingController(text: widget.agent?.analysisPrompt ?? '');
     _hardEndCallMinutesController = TextEditingController(
       text: widget.agent?.hardEndCallMinutes.toString() ?? '30',
     );
+    _ttsSpeedController = TextEditingController(
+      text: widget.agent?.ttsSpeed.toString() ?? '1.0',
+    );
+    _simliFaceIdController = TextEditingController(text: widget.agent?.simliFaceId ?? '');
     
     if (widget.agent != null) {
       _selectedPhoneNumberId = widget.agent!.phoneNumberId;
       _selectedVoice = widget.agent!.voice.toLowerCase();
       _selectedTtsLanguage = widget.agent!.ttsLanguage.toLowerCase();
       _selectedTtsProvider = widget.agent!.ttsProvider.toLowerCase();
+      _selectedSpeechToSpeechProvider = widget.agent!.speechToSpeechProvider;
+      _selectedGeminiLiveVoice = widget.agent!.geminiLiveVoice;
+      _selectedGeminiLiveLanguage = widget.agent!.geminiLiveLanguage;
+      _selectedGreetingType = widget.agent!.greetingType;
       _allowInterruptions = widget.agent!.allowInterruptions;
       _backgroundMusic = widget.agent!.backgroundMusic;
       _debugLogging = widget.agent!.debugLogging;
       _isActive = widget.agent!.isActive;
+      _enableVideoAvatar = widget.agent!.enableVideoAvatar;
       _transcriptionLanguages = widget.agent!.transcriptionLanguages ?? ['en'];
       _analysisConfig = widget.agent!.analysisConfig;
     }
@@ -77,8 +95,11 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
     _nameController.dispose();
     _greetingLineController.dispose();
     _agentPromptController.dispose();
+    _localFallbackPromptController.dispose();
     _analysisPromptController.dispose();
     _hardEndCallMinutesController.dispose();
+    _ttsSpeedController.dispose();
+    _simliFaceIdController.dispose();
     super.dispose();
   }
 
@@ -140,24 +161,36 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
         'voice': _selectedVoice,
         'tts_language': _selectedTtsLanguage,
         'tts_provider': _selectedTtsProvider,
+        'speech_to_speech_provider': _selectedSpeechToSpeechProvider,
+        'gemini_live_voice': _selectedGeminiLiveVoice,
+        'gemini_live_language': _selectedGeminiLiveLanguage,
+        'greeting_type': _selectedGreetingType,
         'greeting_line': _greetingLineController.text.trim().isEmpty 
             ? null 
             : _greetingLineController.text.trim(),
         'agent_prompt': _agentPromptController.text.trim().isEmpty 
             ? null 
             : _agentPromptController.text.trim(),
+        'local_fallback_prompt': _localFallbackPromptController.text.trim().isEmpty
+            ? null
+            : _localFallbackPromptController.text.trim(),
         'analysis_prompt': _analysisPromptController.text.trim().isEmpty 
             ? null 
             : _analysisPromptController.text.trim(),
         'analysis_config': _analysisConfig,
         'transcription_languages': _transcriptionLanguages,
         'knowledge_base_ids': widget.agent?.knowledgeBaseIds ?? [],
+        'tts_speed': double.tryParse(_ttsSpeedController.text) ?? 1.0,
         'allow_interruptions': _allowInterruptions,
         'background_music': _backgroundMusic,
         'debug_logging': _debugLogging,
         'is_frozen': widget.agent?.isFrozen ?? false,
         'hard_end_call_minutes': int.tryParse(_hardEndCallMinutesController.text) ?? 30,
         'is_active': _isActive,
+        'enable_video_avatar': _enableVideoAvatar,
+        'simli_face_id': _simliFaceIdController.text.trim().isEmpty
+            ? null
+            : _simliFaceIdController.text.trim(),
       };
 
       print('=== SAVE AGENT DEBUG ===');
@@ -338,23 +371,6 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
                 const SizedBox(height: 12),
 
                 _buildDropdown<String>(
-                  label: 'Voice',
-                  value: _selectedVoice,
-                  items: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'ashley']
-                      .map((voice) => DropdownMenuItem(
-                            value: voice,
-                            child: Text(voice[0].toUpperCase() + voice.substring(1)),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedVoice = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                _buildDropdown<String>(
                   label: 'TTS Provider',
                   value: _selectedTtsProvider,
                   items: ['openai', 'elevenlabs', 'google', 'azure', 'inworld']
@@ -366,6 +382,23 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => _selectedTtsProvider = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                _buildDropdown<String>(
+                  label: 'Voice',
+                  value: _selectedVoice,
+                  items: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'ashley']
+                      .map((voice) => DropdownMenuItem(
+                            value: voice,
+                            child: Text(voice[0].toUpperCase() + voice.substring(1)),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedVoice = value);
                     }
                   },
                 ),
@@ -386,11 +419,110 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
                     }
                   },
                 ),
+                const SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _ttsSpeedController,
+                  label: 'TTS Speed',
+                  hint: '1.0',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a TTS speed value';
+                    }
+                    final parsed = double.tryParse(value);
+                    if (parsed == null || parsed <= 0) {
+                      return 'Please enter a valid positive number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Speech-to-Speech Section
+                _buildSectionTitle('Speech-to-Speech (S2S)'),
+                const SizedBox(height: 12),
+
+                _buildDropdown<String?>(
+                  label: 'S2S Provider',
+                  value: _selectedSpeechToSpeechProvider,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...['openai_realtime', 'gemini_live']
+                        .map((p) => DropdownMenuItem<String?>(
+                              value: p,
+                              child: Text(p),
+                            )),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedSpeechToSpeechProvider = value);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                _buildDropdown<String?>(
+                  label: 'Gemini Live Voice',
+                  value: _selectedGeminiLiveVoice,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']
+                        .map((v) => DropdownMenuItem<String?>(
+                              value: v,
+                              child: Text(v),
+                            )),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedGeminiLiveVoice = value);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                _buildDropdown<String?>(
+                  label: 'Gemini Live Language',
+                  value: _selectedGeminiLiveLanguage,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'hi-IN', 'ja-JP', 'ko-KR', 'pt-BR', 'zh-CN']
+                        .map((l) => DropdownMenuItem<String?>(
+                              value: l,
+                              child: Text(l),
+                            )),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedGeminiLiveLanguage = value);
+                  },
+                ),
                 const SizedBox(height: 24),
 
                 // Prompts Section
                 _buildSectionTitle('Prompts & Instructions'),
                 const SizedBox(height: 12),
+
+                _buildDropdown<String>(
+                  label: 'Greeting Type',
+                  value: _selectedGreetingType,
+                  items: ['fixed', 'dynamic']
+                      .map((t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(t[0].toUpperCase() + t.substring(1)),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedGreetingType = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
 
                 _buildTextField(
                   controller: _greetingLineController,
@@ -405,6 +537,14 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
                   label: 'Agent Prompt',
                   hint: 'You are a helpful customer support agent...',
                   maxLines: 5,
+                ),
+                const SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _localFallbackPromptController,
+                  label: 'Local Fallback Prompt',
+                  hint: 'Fallback instructions when primary fails...',
+                  maxLines: 3,
                 ),
                 const SizedBox(height: 16),
 
@@ -554,7 +694,31 @@ class _CreateEditAgentScreenState extends ConsumerState<CreateEditAgentScreen> {
                     setState(() => _debugLogging = value);
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Video Avatar Section
+                _buildSectionTitle('Video Avatar'),
+                const SizedBox(height: 12),
+
+                _buildSwitchTile(
+                  title: 'Enable Video Avatar',
+                  subtitle: 'Show a video avatar during calls',
+                  value: _enableVideoAvatar,
+                  onChanged: (value) {
+                    setState(() => _enableVideoAvatar = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                if (_enableVideoAvatar) ...[
+                  _buildTextField(
+                    controller: _simliFaceIdController,
+                    label: 'Simli Face ID',
+                    hint: 'Enter Simli face ID for video avatar',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 20),
 
                 // Save Button
                 SizedBox(
