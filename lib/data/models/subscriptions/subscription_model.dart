@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'subscription_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class SubscriptionTierModel {
   final String id;
   final String name;
@@ -32,7 +32,7 @@ class SubscriptionTierModel {
   Map<String, dynamic> toJson() => _$SubscriptionTierModelToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class CurrentSubscriptionModel {
   final String? id;
   final String? tierId;

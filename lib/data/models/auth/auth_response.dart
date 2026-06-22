@@ -3,7 +3,7 @@ import 'package:vani_app/data/models/user/user_model.dart';
 
 part 'auth_response.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class AuthResponse {
   final String? accessToken;
   final String? refreshToken;

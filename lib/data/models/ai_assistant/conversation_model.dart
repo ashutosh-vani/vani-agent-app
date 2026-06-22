@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'conversation_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class ConversationModel {
   final String id;
   final String? title;
@@ -24,7 +24,7 @@ class ConversationModel {
   Map<String, dynamic> toJson() => _$ConversationModelToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class MessageModel {
   final String id;
   final String role; // 'user' or 'assistant'
@@ -46,7 +46,7 @@ class MessageModel {
   Map<String, dynamic> toJson() => _$MessageModelToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class RunAgentRequest {
   final String? conversationId;
   final String message;
@@ -61,7 +61,7 @@ class RunAgentRequest {
   Map<String, dynamic> toJson() => _$RunAgentRequestToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(fieldRename: FieldRename.snake)
 class RunAgentResponse {
   final String conversationId;
   final MessageModel message;
